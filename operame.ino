@@ -143,7 +143,8 @@ void display_lines(const std::list<String>& lines, int fg = TFT_WHITE, int bg = 
 void display_logo() {
     clear_sprite();
     sprite.setSwapBytes(true);
-    sprite.pushImage(0, 0, 240, 135, CONTROL_CO2_V2_240_135_LOGO);
+    //sprite.pushImage(0, 0, 240, 135, CONTROL_CO2_V2_240_135_LOGO);
+    sprite.pushImage(0, 0, 240, 135, Logo_CVO_Volt_Deoranjerie_vierkant_240x135);
     sprite.pushSprite(0, 0);
 }
 
@@ -183,7 +184,7 @@ void display_ppm_t_h(int ppm, float t, float h) {
         std::swap(fg, bg);
     }
 
-    display_3(String(ppm), String(t), String(h), fg, bg);
+    display_3(String(ppm), String(t,1)+"C", String(h,1)+"%", fg, bg);
 }
 
 void calibrate() {
@@ -599,42 +600,27 @@ void loop() {
         every(mqtt_interval) {
             if (co2 <= 0) break;
             connect_mqtt();
-	    //CO2
-	    String message;
-        const size_t capacity = JSON_OBJECT_SIZE(3);
-        DynamicJsonDocument doc(capacity);
-        doc["variable"] = "CO2";
-	    doc["value"] = co2;
-	    doc["unit"] = "ppm";
- 	    serializeJson(doc, message);
-	    retain(mqtt_topic, message);
+            //CO2
+            String message;
+            const size_t capacity = JSON_OBJECT_SIZE(3);
+            DynamicJsonDocument doc(capacity);
+            doc["co2"] = co2;
+            
 
-	    if(mqtt_temp_hum_enabled) {
-	    	//temperature
-	    	if(!isnan(t)) {
-                String message;
-                const size_t capacity = JSON_OBJECT_SIZE(3);
-                DynamicJsonDocument doc(capacity);
-                doc["variable"] = "temperature";
-                doc["value"] = t;
-                doc["unit"] = "C";
-                serializeJson(doc, message);
-                retain(mqtt_topic_temperature, message);
-	    	}
+            if(mqtt_temp_hum_enabled) {
+                //temperature
+                if(!isnan(t)) {
+                    doc["temperature"] = t;
+                }
 
-	    	//humidity
-            if(!isnan(h)) {
-                String message;
-                const size_t capacity = JSON_OBJECT_SIZE(3);
-                DynamicJsonDocument doc(capacity);
-                doc["variable"] = "humidity";
-                doc["value"] = h;
-                doc["unit"] = "%R.H.";
-                serializeJson(doc, message);
-                retain(mqtt_topic_humidity, message);
+                //humidity
+                if(!isnan(h)) {
+                    doc["humidity"] = h;
+                }
             }
-	    }	 
-	}
+            serializeJson(doc, message);
+            retain(mqtt_topic, message);	 
+        }
     }
 
     if (rest_enabled) {
